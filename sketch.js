@@ -1,174 +1,149 @@
+//Estados do jogo
+var PLAY=1;
+var END=0;
+var gameState=1;
 
-var PLAY = 1;
-var END = 0;
-var gameState = PLAY;
-var bow , arrow,  background, redB, pinkB, greenB ,blueB ,arrowGroup;
-var bowImage, arrowImage, green_balloonImage, red_balloonImage, pink_balloonImage ,blue_balloonImage, backgroundImage;
+var knife,fruit ,monster,fruitGroup,monsterGroup, score,r,randomFruit, position;
+var knifeImage , fruit1, fruit2 ,fruit3,fruit4, monsterImage, gameOverImage;
+var gameOverSound ,knifeSwoosh;
 
-var score =0;
 function preload(){
   
-  backgroundImage = loadImage("background0.png");
+  knifeImage = loadImage("knife.png");
+  monsterImage = loadAnimation("alien1.png","alien2.png")
+  fruit1 = loadImage("fruit1.png");
+  fruit2 = loadImage("fruit2.png");
+  fruit3 = loadImage("fruit3.png");
+  fruit4 = loadImage("fruit4.png");
+  gameOverImage = loadImage("gameover.png")
   
-  arrowImage = loadImage("arrow0.png");
-  bowImage = loadImage("bow0.png");
-  red_balloonImage = loadImage("red_balloon0.png");
-  green_balloonImage = loadImage("green_balloon0.png");
-  pink_balloonImage = loadImage("pink_balloon0.png");
-  blue_balloonImage = loadImage("blue_balloon0.png");
-  
+  gameOverSound = loadSound("gameover.mp3")
+  knifeSwooshSound = loadSound("knifeSwoosh.mp3")
 }
 
 
 
 function setup() {
-  createCanvas(400, 400);
+  createCanvas(600, 600);
   
-  //crie o fundo
-  scene = createSprite(0,0,400,400);
-  scene.addImage(backgroundImage);
-  scene.scale = 2.5
+  //criar espada
+   knife=createSprite(40,200,20,20);
+   knife.addImage(knifeImage);
+   knife.scale=0.7
   
-  // criando arco para a flecha
-  bow = createSprite(380,220,20,50);
-  bow.addImage(bowImage); 
-  bow.scale = 1;
   
-   score = 0  
-  redB= new Group();
-  greenB= new Group();
-  blueB= new Group();
-  pinkB= new Group();
-  arrowGroup= new Group();
- 
+  
+  //definir colisor para espada
+  knife.setCollider("rectangle",0,0,40,40);
+
+  // Variáveis de pontuação e grupos
+  score=0;
+  fruitGroup=createGroup();
+  monsterGroup=createGroup();
   
 }
 
 function draw() {
- background(0);
- if(gameState === PLAY){
-
-  // chão em movimento
-    scene.velocityX = -3 
-
-    if (scene.x < 0){
-      scene.x = scene.width/2;
-    }
+  background("lightblue");
   
-  //arco em movimento
-  bow.y = World.mouseY
-  
-   // soltar arco quando a tecla espaço for pressionada
-  if (keyDown("space")) {
-    createArrow();
+  if(gameState===PLAY){
     
-  }
+    //Chamar função de frutas e monstro
+    fruits();
+    Monster();
+    
+    // Mova a espada com o mouse
+    knife.y=World.mouseY;
+    knife.x=World.mouseX;
   
-  //criando inimigos continuamente
-  var select_balloon = Math.round(random(1,4));
-  
-  if (World.frameCount % 100 == 0) {
-    switch(select_balloon ){
-      case 1: redBalloon();
-      break;
-      case 2:blueBalloon();
-      break;
-      case 3:pinkBalloon();
-      break;
-      case 4:greenBalloon();
-      break;
-      default:break;
+    // Aumenta a pontuação se a espada tocar na fruta
+    if(fruitGroup.isTouching(knife)){
+      fruitGroup.destroyEach();
+      
+      knifeSwooshSound.play();
+      score=score+2;
+    }
+    else
+    {
+      // Vá para o estado final se a espada tocar o inimigo
+      if(monsterGroup.isTouching(knife)){
+        gameState=END;
+        //som de fim do jogo
+        gameOverSound.play()
+        
+        fruitGroup.destroyEach();
+        monsterGroup.destroyEach();
+        fruitGroup.setVelocityXEach(0);
+        monsterGroup.setVelocityXEach(0);
+        
+        // Mude a animação da espada para gameover (fim de jogo) e redefina sua posição
+        knife.addImage(gameOverImage);
+        knife.scale=2;
+        knife.x=300;
+        knife.y=300;
+      }
     }
   }
-
-  if (arrowGroup.isTouching(redB)) {
-    redB.destroyEach();
-
-    gameState=END; 
-
-
-}
- 
-  if (gameState === END) {
-  bow.destroy();
-  scene.velocityX = 0;
-}
-
-
- if (arrowGroup.isTouching(greenB)) {
-  greenB.destroyEach();
-  arrowGroup.destroyEach();
-  score=score+3;
-}
-
-
-
- if (arrowGroup.isTouching(blueB)) {
-  blueB.destroyEach();
-  arrowGroup.destroyEach();
-  score=score+2;
-}
-
-
-
-if (arrowGroup.isTouching(pinkB)) {
-  pinkB.destroyEach();
-  arrowGroup.destroyEach();
-  score=score+1;
-}
- }
   
   drawSprites();
-  text("Pontuação: "+ score, 300,50);
+  //Exibir pontuação
+  textSize(25);
+  text("Score : "+ score,250,50);
 }
 
 
-function redBalloon() {
-  var red = createSprite(0,Math.round(random(20, 370)), 10, 10);
-  red.addImage(red_balloonImage);
-  red.velocityX = 3;
-  red.lifetime = 150;
-  red.scale = 0.1;
-  redB.add(red);
+function Monster(){
+  if(World.frameCount%200===0){
+    monster=createSprite(400,200,20,20);
+    monster.addAnimation("moving", monsterImage);
+    monster.y=Math.round(random(100,550));
+    monster.velocityX=-(8+(score/10));
+    monster.setLifetime=50;
+    
+    monsterGroup.add(monster);
+  }
 }
 
-function blueBalloon() {
-  var blue = createSprite(0,Math.round(random(20, 370)), 10, 10);
-  blue.addImage(blue_balloonImage);
-  blue.velocityX = 3;
-  blue.lifetime = 150;
-  blue.scale = 0.1;
-  blueB.add(blue);
-}
-
-function greenBalloon() {
-  var green = createSprite(0,Math.round(random(20, 370)), 10, 10);
-  green.addImage(green_balloonImage);
-  green.velocityX = 3;
-  green.lifetime = 150;
-  green.scale = 0.1;
-  greenB.add(green);
-}
-
-function pinkBalloon() {
-  var pink = createSprite(0,Math.round(random(20, 370)), 10, 10);
-  pink.addImage(pink_balloonImage);
-  pink.velocityX = 3;
-  pink.lifetime = 150;
-  pink.scale = 1
-  pinkB.add(pink);
-}
-
-
-// Criar flechas para o arco
- function createArrow() {
-  var arrow= createSprite(100, 100, 60, 10);
-  arrow.addImage(arrowImage);
-  arrow.x = 360;
-  arrow.y=bow.y;
-  arrow.velocityX = -4;
-  arrow.lifetime = 100;
-  arrow.scale = 0.3;
-  arrowGroup.add(arrow);
+function fruits(){
+  if(World.frameCount%80===0){
+    position = Math.round(random(1,2));
+    fruit=createSprite(400,200,20,20);
+    console.log(position)
+     //usar uma variável aleatória para mudar a posição da fruta e tornar mais desafiador
+    
+    if(position==1)
+    {
+    fruit.x=600;
+    fruit.velocityX=-(7+(score/4));
+    }
+    else
+    {
+      if(position==2){
+      fruit.x=0;
+      
+  //Aumente a velocidade da fruta após a pontuação 4 ou 10
+      fruit.velocityX= (7+(score/4));
+      }
+    }
+    
+    fruit.scale=0.2;
+     //fruit.debug=true;
+     r=Math.round(random(1,4));
+    if (r == 1) {
+      fruit.addImage(fruit1);
+    } else if (r == 2) {
+      fruit.addImage(fruit2);
+    } else if (r == 3) {
+      fruit.addImage(fruit3);
+    } else {
+      fruit.addImage(fruit4);
+    }
+    
+    fruit.y=Math.round(random(50,550));
    
+    
+    fruit.setLifetime=100;
+    
+    fruitGroup.add(fruit);
+  }
 }
